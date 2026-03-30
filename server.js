@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
@@ -25,11 +24,7 @@ app.use('/api/enquiry', enquiryRoutes);
 app.use('/api/homepage', homepageRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('MongoDB connection error:', err));
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('Using Supabase as primary database');
 });

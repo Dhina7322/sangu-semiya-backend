@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { supabase } = require('../utils/supabase');
 
 const protect = async (req, res, next) => {
   let token;
@@ -7,15 +7,30 @@ const protect = async (req, res, next) => {
     try {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
-      return next(); // Return here!
+      
+      // Support high-availability fallback admin before tables are created
+      if (decoded.id === 'fallback-admin' || decoded.id === 'fallback-admin-id') {
+        req.user = { id: 'fallback-admin', email: 'admin@sangusemiya.com', role: 'Admin' };
+        return next();
+      }
+      
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id, email, role')
+        .eq('id', decoded.id)
+        .single();
+
+      if (error || !user) throw new Error('User not found');
+      
+      req.user = user;
+      return next();
     } catch (error) {
-      return res.status(401).json({ message: 'Not authorized, token failed' }); // Return here!
+      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
 
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' }); // Return here!
+    return res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
