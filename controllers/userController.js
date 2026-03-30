@@ -17,7 +17,9 @@ exports.getUsers = async (req, res) => {
 // @route   POST /api/users/subadmin
 // @access  Private/Admin
 exports.createSubAdmin = async (req, res) => {
-  const { email, password } = req.body;
+  const rawEmail = req.body.email || '';
+  const email = rawEmail.toLowerCase().trim();
+  const { password } = req.body;
   try {
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -47,7 +49,9 @@ exports.createSubAdmin = async (req, res) => {
 // @route   PUT /api/users/profile
 // @access  Private
 exports.updateProfile = async (req, res) => {
-  const { currentEmail, currentPassword, email, password } = req.body;
+  const currentEmail = (req.body.currentEmail || '').toLowerCase().trim();
+  const email = (req.body.email || '').toLowerCase().trim();
+  const { currentPassword, password } = req.body;
   try {
     const user = await User.findById(req.user._id);
 
@@ -111,7 +115,8 @@ exports.deleteUser = async (req, res) => {
 // @route   PUT /api/users/:id
 // @access  Private/Admin
 exports.updateUser = async (req, res) => {
-  const { email, password } = req.body;
+  const email = (req.body.email || '').toLowerCase().trim();
+  const { password } = req.body;
   try {
     const user = await User.findById(req.params.id);
     if (!user) {

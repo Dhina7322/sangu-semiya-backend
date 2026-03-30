@@ -1,18 +1,38 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 };
 
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const rawEmail = req.body.email || '';
+  const email = rawEmail.toLowerCase().trim();
+  const { password } = req.body;
+  
+  // High-availability fallback: Allow default admin login even if MongoDB is disconnected
+  const isDefaultAdmin = email === 'admin@sangusemiya.com' && password === 'admin123';
+  const isMongoConnected = mongoose.connection.readyState === 1;
+
   try {
+    if (!isMongoConnected) {
+      if (isDefaultAdmin) {
+        return res.json({
+          _id: 'fallback-admin-id',
+          email: 'admin@sangusemiya.com',
+          role: 'Admin',
+          token: jwt.sign({ id: 'fallback-admin-id' }, process.env.JWT_SECRET, { expiresIn: '30d' }),
+        });
+      }
+      return res.status(503).json({ message: 'Login failed: Database connection is unavailable. Use admin@sangusemiya.com for recovery access.' });
+    }
+
     let user = await User.findOne({ email });
     
     // Auto-setup admin account for robust deployment without needing /setup endpoint
-    if (!user && email === 'admin@sangusemiya.com' && password === 'admin123') {
+    if (!user && isDefaultAdmin) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('admin123', salt);
       user = await User.create({ email, password: hashedPassword, role: 'Admin' });

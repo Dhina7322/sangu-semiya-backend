@@ -31,7 +31,7 @@ exports.createProduct = async (req, res) => {
     
     // If files uploaded, add paths to image array
     if (req.files && req.files.length > 0) {
-      const fileUrls = req.files.map(file => `http://localhost:5001/uploads/${file.filename}`);
+      const fileUrls = req.files.map(file => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
       productData.images = fileUrls;
     }
 
@@ -52,7 +52,7 @@ exports.updateProduct = async (req, res) => {
 
     // If new files uploaded, handle them
     if (req.files && req.files.length > 0) {
-      const fileUrls = req.files.map(file => `http://localhost:5001/uploads/${file.filename}`);
+      const fileUrls = req.files.map(file => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
       // Join or replace based on logic
       updateData.images = fileUrls;
     }
@@ -83,7 +83,7 @@ exports.deleteProduct = async (req, res) => {
 exports.exportProducts = async (req, res) => {
   try {
     const products = await Product.find({});
-    const fields = ['sku', 'name', 'category', 'packSize', 'amazonLink', 'variants', 'status', 'description'];
+    const fields = ['sku', 'name', 'category', 'packSize', 'amazonLink', 'variants', 'status', 'description', 'images', 'featured'];
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(products);
     
