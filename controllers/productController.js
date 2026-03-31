@@ -3,6 +3,23 @@ const { Parser } = require('json2csv');
 const csv = require('csv-parser');
 const fs = require('fs');
 
+const mapFromDb = (data) => {
+  if (!data) return data;
+  const mapped = { ...data };
+  if (mapped.pack_size !== undefined) { mapped.packSize = mapped.pack_size; delete mapped.pack_size; }
+  if (mapped.amazon_link !== undefined) { mapped.amazonLink = mapped.amazon_link; delete mapped.amazon_link; }
+  if (mapped.created_at !== undefined) { mapped.createdAt = mapped.created_at; }
+  return mapped;
+};
+
+const mapToDb = (data) => {
+  if (!data) return data;
+  const mapped = { ...data };
+  if (mapped.packSize !== undefined) { mapped.pack_size = mapped.packSize; delete mapped.packSize; }
+  if (mapped.amazonLink !== undefined) { mapped.amazon_link = mapped.amazonLink; delete mapped.amazonLink; }
+  return mapped;
+};
+
 exports.getProducts = async (req, res) => {
   try {
     const { data: products, error } = await supabase
@@ -31,7 +48,7 @@ exports.getProductById = async (req, res) => {
       .single();
 
     if (error || !product) return res.status(404).json({ message: 'Product not found' });
-    res.json(product);
+    res.json(mapFromDb(product));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -39,7 +56,7 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const productData = { ...req.body };
+    const productData = mapToDb({ ...req.body });
     
     if (req.files && req.files.length > 0) {
       const uploadPromises = req.files.map(file => uploadToSupabase(file));
@@ -59,7 +76,7 @@ exports.createProduct = async (req, res) => {
       }
       throw error;
     }
-    res.status(201).json(createdProduct);
+    res.status(201).json(mapFromDb(createdProduct));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -80,7 +97,7 @@ exports.updateProduct = async (req, res) => {
     }
     if (getError || !product) return res.status(404).json({ message: 'Product not found' });
 
-    const updateData = { ...req.body };
+    const updateData = mapToDb({ ...req.body });
 
     if (req.files && req.files.length > 0) {
       const uploadPromises = req.files.map(file => uploadToSupabase(file));
@@ -96,7 +113,7 @@ exports.updateProduct = async (req, res) => {
       .single();
 
     if (updateError) throw updateError;
-    res.json(updatedProduct);
+    res.json(mapFromDb(updatedProduct));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -122,9 +139,11 @@ exports.exportProducts = async (req, res) => {
     const { data: products, error } = await supabase.from('products').select('*');
     if (error) throw error;
 
+    const mappedProducts = products.map(mapFromDb);
+
     const fields = ['sku', 'name', 'category', 'packSize', 'amazonLink', 'variants', 'status', 'description', 'images', 'featured'];
     const json2csvParser = new Parser({ fields });
-    const csvData = json2csvParser.parse(products);
+    const csvData = json2csvParser.parse(mappedProducts);
     
     res.header('Content-Type', 'text/csv');
     res.attachment('products_export.csv');
@@ -141,7 +160,7 @@ exports.importProducts = async (req, res) => {
   const results = [];
   fs.createReadStream(req.file.path)
     .pipe(csv())
-    .on('data', (data) => results.push(data))
+    .on('data', (data) => results.push(mapToDb(data)))
     .on('end', async () => {
       try {
         for (const item of results) {
