@@ -7,8 +7,8 @@ exports.getHomepageData = async (req, res) => {
       .select('*')
       .single();
     
-    if (!homepage) {
-      if (error && error.message && error.message.includes('Could not find the table')) {
+    if (!homepage || error) {
+      if (error && error.message && (error.message.includes('Could not find the table') || error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
         return res.json({
           heroBanner: { message: 'Sangu Brand Semiya', subMessage: 'Healthy, Delicious & Quick to Cook', backgroundImage: '' },
           whyChooseUs: [],
@@ -60,10 +60,18 @@ exports.updateHomepageData = async (req, res) => {
         .insert([updateData])
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        if (error.message && (error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
+          return res.status(503).json({ message: 'Supabase setup required to save data.' });
+        }
+        throw error;
+      }
       res.status(201).json(created);
     }
   } catch (error) {
+    if (error.message && (error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
+      return res.status(503).json({ message: 'Supabase setup required to save data.' });
+    }
     res.status(500).json({ message: error.message });
   }
 };

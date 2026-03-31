@@ -28,12 +28,14 @@ exports.getProducts = async (req, res) => {
       .order('created_at', { ascending: false });
     
     if (error) {
-      if (error.message && error.message.includes('Could not find the table')) return res.json([]);
-      throw error;
+      console.error("Supabase Error in getProducts:", error.message);
+      // Graceful degradation when Supabase project is missing/deleted
+      return res.json([]);
     }
-    res.json(products.map(mapFromDb));
+    res.json(products || []);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Catch Error in getProducts:", error.message);
+    res.json([]);
   }
 };
 
@@ -69,8 +71,8 @@ exports.createProduct = async (req, res) => {
       .single();
 
     if (error) {
-      if (error.message && error.message.includes('Could not find the table')) {
-        return res.status(503).json({ message: 'Database setup required: Please run the SQL schema in your Supabase dashboard to create the products table.' });
+      if (error.message && (error.message.includes('Could not find the table') || error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
+        return res.status(503).json({ message: 'Database setup required: Please update your .env with valid Supabase credentials and create the products table.' });
       }
       throw error;
     }
@@ -88,6 +90,11 @@ exports.updateProduct = async (req, res) => {
       .eq('id', req.params.id)
       .single();
 
+    if (getError) {
+      if (getError.message && (getError.message.includes('Project removed') || getError.message.includes('fetch failed'))) {
+        return res.status(503).json({ message: 'Database setup required: Please update your .env with valid Supabase credentials.' });
+      }
+    }
     if (getError || !product) return res.status(404).json({ message: 'Product not found' });
 
     const updateData = mapToDb({ ...req.body });

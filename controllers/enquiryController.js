@@ -28,12 +28,13 @@ exports.getEnquiries = async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      if (error.message && error.message.includes('Could not find the table')) return res.json([]);
-      throw error;
+      console.error("Supabase Error in getEnquiries:", error.message);
+      return res.json([]);
     }
-    res.json(enquiries);
+    res.json(enquiries || []);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Catch Error in getEnquiries:", error.message);
+    res.json([]);
   }
 };
 
