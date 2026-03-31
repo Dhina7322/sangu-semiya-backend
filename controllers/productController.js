@@ -32,7 +32,9 @@ exports.getProducts = async (req, res) => {
       // Graceful degradation when Supabase project is missing/deleted
       return res.json([]);
     }
-    res.json(products || []);
+    const mappedProducts = (products || []).map(mapFromDb);
+    res.json(mappedProducts);
+
   } catch (error) {
     console.error("Catch Error in getProducts:", error.message);
     res.json([]);
