@@ -20,12 +20,22 @@ const protect = async (req, res, next) => {
         .eq('id', decoded.id)
         .single();
 
-      if (error || !user) throw new Error('User not found');
+      if (error) {
+         if (error.message && (error.message.includes('Project removed') || error.message.includes('fetch failed') || error.message.includes('table'))) {
+             // System out of order or DB removed
+             return res.status(503).json({ message: 'Database setup required or Supabase project is offline. Please update .env credentials.' });
+         }
+         throw new Error('User not found');
+      }
+      
+      if (!user) throw new Error('User not found');
       
       req.user = user;
       return next();
     } catch (error) {
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+      if (!res.headersSent) {
+         return res.status(401).json({ message: 'Not authorized, token failed' });
+      }
     }
   }
 
