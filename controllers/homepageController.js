@@ -14,7 +14,8 @@ exports.getHomepageData = async (req, res) => {
           whyChooseUs: [],
           productionSteps: [],
           aboutText: '',
-          contactDetails: { phone: '', email: '', address: '', whatsapp: '' }
+          contactDetails: { phone: '', email: '', address: '', whatsapp: '' },
+          recipes: []
         });
       }
 
@@ -28,8 +29,20 @@ exports.getHomepageData = async (req, res) => {
       if (createError) throw createError;
       homepage = newHomepage;
     }
-    res.json(homepage);
+
+    // Map snake_case from database to camelCase for frontend
+    const result = {
+      heroBanner: homepage.hero_banner,
+      whyChooseUs: homepage.why_choose_us,
+      productionSteps: homepage.production_steps,
+      aboutText: homepage.about_text,
+      contactDetails: homepage.contact_details,
+      recipes: homepage.recipes || []
+    };
+
+    res.json(result);
   } catch (error) {
+    console.error('Internal Server Error (Get Homepage):', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -37,12 +50,20 @@ exports.getHomepageData = async (req, res) => {
 exports.updateHomepageData = async (req, res) => {
   try {
     const { data: homepage } = await supabase.from('homepage').select('*').single();
-    const updateData = { ...req.body };
+    
+    // Map camelCase from frontend to snake_case for database
+    const updateData = {};
+    if (req.body.heroBanner) updateData.hero_banner = req.body.heroBanner;
+    if (req.body.whyChooseUs) updateData.why_choose_us = req.body.whyChooseUs;
+    if (req.body.productionSteps) updateData.production_steps = req.body.productionSteps;
+    if (req.body.aboutText) updateData.about_text = req.body.aboutText;
+    if (req.body.contactDetails) updateData.contact_details = req.body.contactDetails;
+    if (req.body.recipes) updateData.recipes = req.body.recipes;
 
     if (req.file) {
       const publicUrl = await uploadToSupabase(req.file);
-      if (!updateData.heroBanner) updateData.heroBanner = {};
-      updateData.heroBanner.backgroundImage = publicUrl;
+      if (!updateData.hero_banner) updateData.hero_banner = {};
+      updateData.hero_banner.backgroundImage = publicUrl;
     }
 
     if (homepage) {
@@ -52,7 +73,10 @@ exports.updateHomepageData = async (req, res) => {
         .eq('id', homepage.id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Update Error:', error);
+        throw error;
+      }
       res.json(updated);
     } else {
       const { data: created, error } = await supabase
@@ -61,6 +85,7 @@ exports.updateHomepageData = async (req, res) => {
         .select()
         .single();
       if (error) {
+        console.error('Supabase Insert Error:', error);
         if (error.message && (error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
           return res.status(503).json({ message: 'Supabase setup required to save data.' });
         }
@@ -69,9 +94,7 @@ exports.updateHomepageData = async (req, res) => {
       res.status(201).json(created);
     }
   } catch (error) {
-    if (error.message && (error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
-      return res.status(503).json({ message: 'Supabase setup required to save data.' });
-    }
+    console.error('Internal Server Error (Homepage Update):', error);
     res.status(500).json({ message: error.message });
   }
 };
