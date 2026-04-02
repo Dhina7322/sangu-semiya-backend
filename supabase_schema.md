@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS products (
   images TEXT[] DEFAULT '{}',
   pack_size TEXT,
   amazon_link TEXT,
+  price TEXT,
   category TEXT DEFAULT 'General',
   variants TEXT,
   status TEXT DEFAULT 'Active',

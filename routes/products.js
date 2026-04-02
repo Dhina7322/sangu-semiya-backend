@@ -23,4 +23,7 @@ router.delete('/:id', protect, productController.deleteProduct);
 router.get('/utils/export', protect, productController.exportProducts);
 router.post('/utils/import', protect, upload.single('csvFile'), productController.importProducts);
 
+// Amazon Tools
+router.post('/fetch-amazon-price', protect, productController.fetchAmazonPrice);
+
 module.exports = router;
