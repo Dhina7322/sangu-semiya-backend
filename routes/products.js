@@ -11,10 +11,10 @@ router.get('/', productController.getProducts);
 router.get('/:id', productController.getProductById);
 
 // Create product (with optional local images)
-router.post('/', protect, upload.array('images', 10), productController.createProduct);
+router.post('/', protect, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'banner_image', maxCount: 1 }]), productController.createProduct);
 
 // Update product (with optional local images)
-router.put('/:id', protect, upload.array('images', 10), productController.updateProduct);
+router.put('/:id', protect, upload.fields([{ name: 'images', maxCount: 10 }, { name: 'banner_image', maxCount: 1 }]), productController.updateProduct);
 
 // Delete product
 router.delete('/:id', protect, productController.deleteProduct);

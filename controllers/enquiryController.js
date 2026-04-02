@@ -53,3 +53,17 @@ exports.updateEnquiryStatus = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.deleteEnquiry = async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('enquiries')
+      .delete()
+      .eq('id', req.params.id);
+
+    if (error) throw error;
+    res.status(200).json({ message: 'Enquiry deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
