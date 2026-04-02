@@ -102,10 +102,18 @@ exports.createProduct = async (req, res) => {
   try {
     const productData = mapToDb({ ...req.body });
     
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(file => uploadToSupabase(file));
+    // Handle main product images
+    if (req.files?.images?.length > 0) {
+      const uploadPromises = req.files.images.map(file => uploadToSupabase(file));
       const fileUrls = await Promise.all(uploadPromises);
       productData.images = fileUrls;
+    }
+
+    // Handle banner image separately
+    if (req.files?.banner_image?.length > 0) {
+      const bannerUrl = await uploadToSupabase(req.files.banner_image[0]);
+      if (!productData.metadata) productData.metadata = {};
+      productData.metadata.bannerImage = bannerUrl;
     }
 
     let { data: createdProduct, error } = await supabase
@@ -125,12 +133,7 @@ exports.createProduct = async (req, res) => {
       createdProduct = retry.data;
     }
 
-    if (error) {
-      if (error.message && (error.message.includes('Could not find the table') || error.message.includes('Project removed') || error.message.includes('fetch failed'))) {
-        return res.status(503).json({ message: 'Database setup required: Please update your .env with valid Supabase credentials and create the products table.' });
-      }
-      throw error;
-    }
+    if (error) throw error;
     res.status(201).json(mapFromDb(createdProduct));
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -145,19 +148,22 @@ exports.updateProduct = async (req, res) => {
       .eq('id', req.params.id)
       .single();
 
-    if (getError) {
-      if (getError.message && (getError.message.includes('Project removed') || getError.message.includes('fetch failed'))) {
-        return res.status(503).json({ message: 'Database setup required: Please update your .env with valid Supabase credentials.' });
-      }
-    }
     if (getError || !product) return res.status(404).json({ message: 'Product not found' });
 
     const updateData = mapToDb({ ...req.body });
 
-    if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(file => uploadToSupabase(file));
+    // Handle main product images
+    if (req.files?.images?.length > 0) {
+      const uploadPromises = req.files.images.map(file => uploadToSupabase(file));
       const fileUrls = await Promise.all(uploadPromises);
       updateData.images = fileUrls;
+    }
+
+    // Handle banner image separately
+    if (req.files?.banner_image?.length > 0) {
+      const bannerUrl = await uploadToSupabase(req.files.banner_image[0]);
+      if (!updateData.metadata) updateData.metadata = {};
+      updateData.metadata.bannerImage = bannerUrl;
     }
 
     let { data: updatedProduct, error: updateError } = await supabase
