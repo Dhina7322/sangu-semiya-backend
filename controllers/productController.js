@@ -268,8 +268,11 @@ exports.importProducts = async (req, res) => {
 
 const puppeteer = require('puppeteer-core');
 
-// Common Chrome paths on macOS
+// Common Chrome/Chromium paths
 const CHROME_PATHS = [
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/chromium',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',
   '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
@@ -286,8 +289,20 @@ exports.fetchAmazonPrice = async (req, res) => {
     // Find an available Chrome executable
     const fs = require('fs');
     let executablePath = CHROME_PATHS.find(p => fs.existsSync(p));
+    
+    // If not found in common paths, try 'which' on linux
+    if (!executablePath && process.platform !== 'win32' && process.platform !== 'darwin') {
+      try {
+        const { execSync } = require('child_process');
+        executablePath = execSync('which google-chrome || which chromium-browser || which chromium').toString().trim();
+      } catch (e) {
+        console.log("Executable not found via which");
+      }
+    }
+
     if (!executablePath) {
-      return res.status(500).json({ message: 'Chrome not found. Please install Google Chrome.' });
+      console.error("[Puppeteer] Chrome/Chromium executable not found.");
+      return res.status(500).json({ message: 'Chromium not found on server. Please ensure it is installed.' });
     }
 
     browser = await puppeteer.launch({
