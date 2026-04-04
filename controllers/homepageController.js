@@ -98,3 +98,14 @@ exports.updateHomepageData = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.uploadHomepageMedia = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const publicUrl = await uploadToSupabase(req.file);
+    res.json({ url: publicUrl });
+  } catch (error) {
+    console.error('Error uploading homepage media:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
