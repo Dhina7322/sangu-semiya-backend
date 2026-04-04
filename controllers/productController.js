@@ -103,11 +103,13 @@ exports.createProduct = async (req, res) => {
     const productData = mapToDb({ ...req.body });
     
     // Handle main product images
+    const images = [];
     if (req.files?.images?.length > 0) {
       const uploadPromises = req.files.images.map(file => uploadToSupabase(file));
       const fileUrls = await Promise.all(uploadPromises);
-      productData.images = fileUrls;
+      images.push(...fileUrls);
     }
+    productData.images = images;
 
     // Handle banner image separately
     if (req.files?.banner_image?.length > 0) {
@@ -152,12 +154,28 @@ exports.updateProduct = async (req, res) => {
 
     const updateData = mapToDb({ ...req.body });
 
-    // Handle main product images
+    // Handle existing images merger
+    let imageList = [];
+    if (req.body.existing_images) {
+      try {
+        imageList = typeof req.body.existing_images === 'string' 
+          ? JSON.parse(req.body.existing_images) 
+          : req.body.existing_images;
+      } catch (e) {
+        imageList = product.images || [];
+      }
+    } else {
+      imageList = product.images || [];
+    }
+
+    // Handle new images upload
     if (req.files?.images?.length > 0) {
       const uploadPromises = req.files.images.map(file => uploadToSupabase(file));
       const fileUrls = await Promise.all(uploadPromises);
-      updateData.images = fileUrls;
+      imageList.push(...fileUrls);
     }
+    
+    updateData.images = imageList;
 
     // Handle banner image separately
     if (req.files?.banner_image?.length > 0) {
