@@ -18,12 +18,14 @@ const productRoutes = require('./routes/products');
 const enquiryRoutes = require('./routes/enquiry');
 const homepageRoutes = require('./routes/homepage');
 const blogRoutes = require('./routes/blogs');
+const categoryRoutes = require('./routes/categories');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/enquiry', enquiryRoutes);
 app.use('/api/homepage', homepageRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/categories', categoryRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
 
 app.listen(PORT, () => {

@@ -56,6 +56,15 @@ CREATE TABLE IF NOT EXISTS homepage (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 5. Create Categories Table
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'Active',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Insert initial empty homepage row
 INSERT INTO homepage (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 ```
