@@ -37,7 +37,8 @@ exports.getHomepageData = async (req, res) => {
       productionSteps: homepage.production_steps,
       aboutText: homepage.about_text,
       contactDetails: homepage.contact_details,
-      recipes: homepage.recipes || []
+      recipes: homepage.recipes || [],
+      customSections: homepage.custom_sections || homepage.hero_banner?.customSections || []
     };
 
     res.json(result);
@@ -59,6 +60,7 @@ exports.updateHomepageData = async (req, res) => {
     if (req.body.aboutText) updateData.about_text = req.body.aboutText;
     if (req.body.contactDetails) updateData.contact_details = req.body.contactDetails;
     if (req.body.recipes) updateData.recipes = req.body.recipes;
+    if (req.body.customSections) updateData.custom_sections = req.body.customSections;
 
     if (req.file) {
       const publicUrl = await uploadToSupabase(req.file);
@@ -67,12 +69,35 @@ exports.updateHomepageData = async (req, res) => {
     }
 
     if (homepage) {
-      const { data: updated, error } = await supabase
+      let { data: updated, error } = await supabase
         .from('homepage')
         .update(updateData)
         .eq('id', homepage.id)
         .select()
         .single();
+
+      // Graceful Fallback: If 'custom_sections' column throws an error (schema out of sync), map it into the existing JSONB hero_banner object
+      if (error && error.message && error.message.includes('custom_sections')) {
+        console.warn('Fallback triggered: custom_sections column missing. Storing in hero_banner JSONB.');
+        const fallbackData = { ...updateData };
+        delete fallbackData.custom_sections;
+        fallbackData.hero_banner = { 
+          ...homepage.hero_banner, 
+          ...fallbackData.hero_banner, 
+          customSections: req.body.customSections 
+        };
+        
+        const retry = await supabase
+          .from('homepage')
+          .update(fallbackData)
+          .eq('id', homepage.id)
+          .select()
+          .single();
+          
+        error = retry.error;
+        updated = retry.data;
+      }
+
       if (error) {
         console.error('Supabase Update Error:', error);
         throw error;
