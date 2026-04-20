@@ -78,7 +78,6 @@ exports.updateHomepageData = async (req, res) => {
 
       // Graceful Fallback: If 'custom_sections' column throws an error (schema out of sync), map it into the existing JSONB hero_banner object
       if (error && error.message && error.message.includes('custom_sections')) {
-        console.warn('Fallback triggered: custom_sections column missing. Storing in hero_banner JSONB.');
         const fallbackData = { ...updateData };
         delete fallbackData.custom_sections;
         fallbackData.hero_banner = { 

@@ -54,8 +54,7 @@ exports.getProducts = async (req, res) => {
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error("Supabase Error in getProducts:", error.message);
-      // Graceful degradation when Supabase project is missing/deleted
+      // Graceful degradation when Supabase project is missing/deleted or temporary fetch failure
       return res.json([]);
     }
     const mappedProducts = (products || []).map(mapFromDb);
